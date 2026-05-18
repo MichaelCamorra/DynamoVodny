@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Расписание — ЦПВС Динамо Водный</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0e14;--bg1:#11151e;--bg2:#161b27;--bg3:#1c2333;
+  --border:#252d3d;--border2:#2e3a52;
+  --txt:#e8edf5;--txt2:#8a9ab8;--txt3:#4a5a78;
+  --accent:#4f8ef7;--green:#22c55e;--red:#f43f5e;--amber:#f59e0b;--purple:#a855f7;
+}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+.hdr{
+  position:sticky;top:0;z-index:100;
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:0 16px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.logo-ball{font-size:24px}
+.logo-text{font-weight:800;font-size:14px;line-height:1.1;letter-spacing:-.01em}
+.logo-sub{font-size:10px;color:var(--txt3);margin-top:1px;font-weight:500}
+.live-dot{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txt3);font-weight:500}
+.live-dot span{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.date-bar{
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+.date-big{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.date-sub{font-size:13px;color:var(--txt3);margin-top:2px;font-weight:500}
+.clock{font-size:28px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--accent)}
+
+.content{max-width:680px;margin:0 auto;padding:16px 16px 40px}
+
+.section-title{
+  font-size:11px;font-weight:700;color:var(--txt3);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin:20px 0 10px;
+}
+
+/* Courts grid */
+.courts{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin-bottom:24px}
+.court-chip{
+  border-radius:10px;padding:10px 4px;text-align:center;
+  border:1px solid var(--border);background:var(--bg1);
+  transition:all .2s;
+}
+.court-chip.free{border-color:#22c55e30;background:#22c55e08}
+.court-chip.busy{border-color:#f43f5e30;background:#f43f5e08}
+.court-chip.soon{border-color:#f59e0b30;background:#f59e0b08}
+.court-num{font-size:14px;font-weight:700;color:var(--txt)}
+.court-status{font-size:9px;font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
+.court-chip.free .court-status{color:var(--green)}
+.court-chip.busy .court-status{color:var(--red)}
+.court-chip.soon .court-status{color:var(--amber)}
+.court-chip.fb .court-num{font-size:12px}
+
+/* Schedule list */
+.sched-list{display:flex;flex-direction:column;gap:6px}
+.sched-card{
+  background:var(--bg1);border:1px solid var(--border);
+  border-left:3px solid var(--border2);
+  border-radius:10px;padding:12px 14px;
+  transition:all .15s;
+}
+.sched-card.now{border-left-color:var(--accent);background:var(--bg2)}
+.sched-card.cancelled{opacity:.4;border-left-color:var(--purple)}
+.sched-card.absent{opacity:.35;border-left-color:var(--red)}
+.sched-card.past{opacity:.5}
+
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-time{font-size:16px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.card-courts{font-size:12px;color:var(--txt3);font-weight:500;margin-top:2px}
+.card-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.badge{border-radius:99px;padding:2px 9px;font-size:11px;font-weight:600}
+.badge-now{background:#4f8ef720;color:var(--accent);border:1px solid #4f8ef740}
+.badge-past{background:transparent;color:var(--txt3);border:1px solid var(--border)}
+.badge-cancel{background:#a855f720;color:var(--purple);border:1px solid #a855f740}
+.badge-absent{background:#f43f5e20;color:var(--red);border:1px solid #f43f5e40}
+.badge-present{background:#22c55e20;color:var(--green);border:1px solid #22c55e40}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 24px;color:var(--txt3)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+
+/* Setup panel (no BinID) */
+.setup{
+  background:var(--bg1);border:1px solid var(--border2);border-radius:12px;
+  padding:24px;margin:24px 0;
+}
+.setup h2{font-size:16px;font-weight:700;margin-bottom:8px}
+.setup p{font-size:13px;color:var(--txt2);line-height:1.7;margin-bottom:14px}
+.inp{
+  width:100%;background:var(--bg);border:1px solid var(--border2);
+  border-radius:8px;color:var(--txt);font-family:inherit;font-size:13px;
+  padding:10px 12px;outline:none;transition:border-color .12s;margin-bottom:8px;
+}
+.inp:focus{border-color:var(--accent)}
+.btn{
+  cursor:pointer;border:none;border-radius:8px;font-family:inherit;
+  font-size:13px;font-weight:600;padding:10px 18px;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3d7ef0}
+
+.refresh-note{font-size:11px;color:var(--txt3);text-align:center;margin-top:20px}
+
+@media(min-width:640px){
+  .content{padding:24px 24px 60px}
+  .hdr{padding:0 24px}
+  .date-bar{padding:16px 24px}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <span class="logo-ball">🏐</span>
+    <div>
+      <div class="logo-text">ЦПВС Динамо Водный</div>
+      <div class="logo-sub">Ленинградское ш. вл. 39</div>
+    </div>
+  </div>
+  <div class="live-dot"><span></span> обновляется</div>
+</div>
+
+<div class="date-bar">
+  <div>
+    <div class="date-big" id="date-big">—</div>
+    <div class="date-sub">Расписание дня</div>
+  </div>
+  <div class="clock" id="clock">—:—</div>
+</div>
+
+<div class="content">
+  <div id="setup" style="display:none">
+    <div class="setup">
+      <h2>🔗 Настройка синхронизации</h2>
+      <p>Введите Bin ID из настроек основного приложения (JSONBin), чтобы расписание обновлялось автоматически.</p>
+      <input class="inp" id="binid-inp" placeholder="Bin ID (из Настройки → JSONBin → Bin ID)">
+      <input class="inp" id="apikey-inp" placeholder="Master Key (необязательно — если бин публичный)">
+      <button class="btn btn-primary" onclick="saveConfig()">Подключить</button>
+    </div>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="section-title">Корты сейчас</div>
+    <div class="courts" id="courts-grid"></div>
+
+    <div class="section-title">Расписание дня</div>
+    <div class="sched-list" id="sched-list"></div>
+  </div>
+
+  <div id="loading" style="text-align:center;padding:48px;color:#4a5a78">Загрузка…</div>
+
+  <div class="refresh-note" id="refresh-note" style="display:none">Автообновление каждые 60 сек</div>
+</div>
+
+<script>
+const DOW_RU = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+const DOW_SHORT = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+const MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const ALL_COURTS = [
+  {id:1,t:"vb",name:"Корт 1"},{id:2,t:"vb",name:"Корт 2"},{id:3,t:"vb",name:"Корт 3"},
+  {id:4,t:"vb",name:"Корт 4"},{id:5,t:"vb",name:"Корт 5"},{id:6,t:"vb",name:"Корт 6"},
+  {id:7,t:"vb",name:"Корт 7"},{id:8,t:"vb",name:"Корт 8"},{id:9,t:"vb",name:"Корт 9"},
+  {id:10,t:"vb",name:"Корт 10"},{id:11,t:"fb",name:"Футбол"}
+];
+
+// ── Config ────────────────────────────────────────────────────────────────
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem("DV_SCHEDULE_CFG") || "{}"); } catch(e) { return {}; }
+}
+function saveConfig() {
+  const binId = document.getElementById("binid-inp").value.trim();
+  const apiKey = document.getElementById("apikey-inp").value.trim();
+  if (!binId) { alert("Введите Bin ID"); return; }
+  localStorage.setItem("DV_SCHEDULE_CFG", JSON.stringify({ binId, apiKey }));
+  init();
+}
+
+// ── Date helpers ──────────────────────────────────────────────────────────
+function today() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function t2m(t) {
+  if (!t) return 0;
+  const [h,m] = t.split(":").map(Number);
+  return h*60 + (m||0);
+}
+function norm(t) { const m = t2m(t); return m === 0 ? 1440 : m; }
+function slotDates(sl) {
+  if (sl.specificDates && sl.specificDates.length) {
+    const excl = sl.excludeDates || [];
+    return sl.specificDates.filter(d => !excl.includes(d)).sort();
+  }
+  if (!sl.startDate || !sl.endDate || !sl.dow || !sl.dow.length) return [];
+  const out = [], excl = sl.excludeDates || [];
+  let c = new Date(sl.startDate + "T00:00:00");
+  const e = new Date(sl.endDate + "T00:00:00");
+  while (c <= e) {
+    if (sl.dow.includes(c.getDay())) {
+      const dk = c.getFullYear() + "-" + String(c.getMonth()+1).padStart(2,"0") + "-" + String(c.getDate()).padStart(2,"0");
+      if (!excl.includes(dk)) out.push(dk);
+    }
+    c.setDate(c.getDate()+1);
+  }
+  return out;
+}
+function slotsOnDate(bk, date) {
+  return (bk.slots || []).filter(sl => slotDates(sl).includes(date));
+}
+
+// ── Clock ─────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,"0");
+  const m = String(now.getMinutes()).padStart(2,"0");
+  document.getElementById("clock").textContent = h + ":" + m;
+  const dow = DOW_RU[now.getDay()];
+  document.getElementById("date-big").textContent =
+    now.getDate() + " " + MONTHS[now.getMonth()] + " · " + dow.charAt(0).toUpperCase() + dow.slice(1);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function render(data) {
+  const td = today();
+  const now = new Date();
+  const nowM = now.getHours()*60 + now.getMinutes();
+
+  // Bookings today
+  const bks = (data.bookings || []).filter(b => {
+    const slots = slotsOnDate(b, td);
+    return slots.length > 0;
+  }).sort((a, b) => {
+    const am = Math.min(...slotsOnDate(a,td).map(s => t2m(s.timeStart)));
+    const bm = Math.min(...slotsOnDate(b,td).map(s => t2m(s.timeStart)));
+    return am - bm;
+  });
+
+  // Check if session is cancelled/absent for today
+  function getDaySessStatus(bk) {
+    const today_ = td;
+    const todaySess = (bk.sessions || []).filter(s => s.date === today_);
+    if (todaySess.some(s => s.status === "cancel_client" || s.status === "cancel_club" || s.status === "moved")) return "cancel";
+    if (todaySess.some(s => s.status === "absent")) return "absent";
+    if (todaySess.some(s => s.status === "present")) return "present";
+    return null;
+  }
+
+  // Courts status
+  const busyCourts = {}, nextCourts = {};
+  bks.forEach(b => {
+    const sessStatus = getDaySessStatus(b);
+    if (sessStatus === "cancel" || sessStatus === "absent") return; // skip cancelled
+    slotsOnDate(b, td).forEach(sl => {
+      const ts = t2m(sl.timeStart), te = norm(sl.timeEnd);
+      (sl.courts || []).forEach(cid => {
+        if (nowM >= ts && nowM < te) {
+          busyCourts[cid] = { b, ts, te };
+        } else if (ts > nowM) {
+          if (!nextCourts[cid] || ts < nextCourts[cid].ts) {
+            nextCourts[cid] = { b, ts, te };
+          }
+        }
+      });
+    });
+  });
+
+  // Render courts grid
+  const courtsGrid = document.getElementById("courts-grid");
+  courtsGrid.innerHTML = "";
+  ALL_COURTS.forEach(ct => {
+    const busy = busyCourts[ct.id];
+    const next = nextCourts[ct.id];
+    const state = busy ? "busy" : next ? "soon" : "free";
+    const statusText = busy ? "играют" : next ? "скоро" : "свободно";
+    const div = document.createElement("div");
+    div.className = "court-chip " + state + (ct.t === "fb" ? " fb" : "");
+    div.innerHTML =
+      `<div class="court-num">${ct.t==="fb"?"⚽ Фт":ct.id}</div>` +
+      `<div class="court-status">${statusText}</div>`;
+    if (busy) div.title = busy.b.clientName + " до " + String(Math.floor(busy.te/60)).padStart(2,"0") + ":" + String(busy.te%60).padStart(2,"0");
+    courtsGrid.appendChild(div);
+  });
+
+  // Render schedule list
+  const schedList = document.getElementById("sched-list");
+  schedList.innerHTML = "";
+  if (!bks.length) {
+    schedList.innerHTML = '<div class="empty"><div class="empty-icon">🏖️</div><div>На сегодня броней нет</div></div>';
+  } else {
+    bks.forEach(b => {
+      const slots = slotsOnDate(b, td);
+      const firstM = Math.min(...slots.map(s => t2m(s.timeStart)));
+      const lastM = Math.max(...slots.map(s => norm(s.timeEnd)));
+      const isNow = nowM >= firstM && nowM < lastM;
+      const isPast = nowM >= lastM;
+      const sessStatus = getDaySessStatus(b);
+
+      let cardClass = "sched-card";
+      if (sessStatus === "cancel") cardClass += " cancelled";
+      else if (sessStatus === "absent") cardClass += " absent";
+      else if (isNow) cardClass += " now";
+      else if (isPast) cardClass += " past";
+
+      const courtsStr = slots.map(sl =>
+        (sl.courts||[]).map(id => { const ct = ALL_COURTS.find(c=>c.id===id); return ct ? ct.name : "К"+id; }).join("+") + " " + sl.timeStart + "–" + sl.timeEnd
+      ).join(" · ");
+
+      let badgeHTML = "";
+      if (sessStatus === "cancel") badgeHTML = '<span class="badge badge-cancel">отмена</span>';
+      else if (sessStatus === "absent") badgeHTML = '<span class="badge badge-absent">не был</span>';
+      else if (sessStatus === "present") badgeHTML = '<span class="badge badge-present">был</span>';
+      else if (isNow) badgeHTML = '<span class="badge badge-now">● сейчас</span>';
+      else if (isPast) badgeHTML = '<span class="badge badge-past">завершено</span>';
+
+      const card = document.createElement("div");
+      card.className = cardClass;
+      card.innerHTML = `
+        <div class="card-top">
+          <div>
+            <div class="card-time">${String(Math.floor(firstM/60)).padStart(2,"0")}:${String(firstM%60).padStart(2,"0")}</div>
+            <div class="card-courts">${courtsStr}</div>
+          </div>
+          <div class="card-badges">${badgeHTML}</div>
+        </div>`;
+      schedList.appendChild(card);
+    });
+  }
+
+  document.getElementById("main").style.display = "block";
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("refresh-note").style.display = "block";
+}
+
+// ── Fetch from JSONBin ─────────────────────────────────────────────────────
+async function fetchData() {
+  const cfg = getConfig();
+  if (!cfg.binId) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("setup").style.display = "block";
+    return;
+  }
+  try {
+    const headers = { "Content-Type": "application/json" };
+    if (cfg.apiKey) headers["X-Master-Key"] = cfg.apiKey;
+    const r = await fetch("https://api.jsonbin.io/v3/b/" + cfg.binId + "/latest", { headers });
+    const d = await r.json();
+    const data = d.record || d;
+    render(data);
+  } catch(e) {
+    document.getElementById("loading").textContent = "Ошибка загрузки. Проверь Bin ID.";
+    console.error(e);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+function init() {
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("main").style.display = "none";
+  fetchData();
+}
+
+updateClock();
+setInterval(updateClock, 10000);
+setInterval(() => { const cfg = getConfig(); if (cfg.binId) fetchData(); }, 60000);
+init();
+
+// Allow Bin ID via URL param: ?bin=XXXXX&key=YYYYY
+const params = new URLSearchParams(location.search);
+if (params.get("bin")) {
+  const existing = getConfig();
+  if (!existing.binId) {
+    localStorage.setItem("DV_SCHEDULE_CFG", JSON.stringify({
+      binId: params.get("bin"),
+      apiKey: params.get("key") || ""
+    }));
+    init();
+  }
+}
+</script>
+</body>
+</html>
