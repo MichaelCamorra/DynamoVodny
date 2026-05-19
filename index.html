@@ -81,6 +81,16 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-seri
 .btn{cursor:pointer;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;padding:10px 18px}
 .bp{background:var(--accent);color:#fff}
 .note{font-size:11px;color:var(--txt3);text-align:center;margin-top:14px}
+.card-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+.act-btn{cursor:pointer;border:none;border-radius:99px;font-family:inherit;font-size:11px;font-weight:600;padding:4px 12px;transition:all .12s}
+.act-present{background:#22c55e18;color:var(--green);border:1px solid #22c55e30}
+.act-present:hover{background:#22c55e28}
+.act-absent{background:#f43f5e16;color:var(--red);border:1px solid #f43f5e30}
+.act-absent:hover{background:#f43f5e28}
+.act-cancel{background:#a855f716;color:var(--purple);border:1px solid #a855f730}
+.act-cancel:hover{background:#a855f726}
+.act-clear{background:var(--bg2);color:var(--txt3);border:1px solid var(--border)}
+.act-clear:hover{background:var(--bg3)}
 
 @media(min-width:640px){.content{padding:20px 24px 60px}.hdr,.date-nav,.day-tabs{padding-left:24px;padding-right:24px}}
 </style>
@@ -165,7 +175,17 @@ function sessStatus(bk,date){
   return null;
 }
 
-function getCfg(){try{return JSON.parse(localStorage.getItem("DV_SCHEDULE_CFG")||"{}")}catch(e){return{}}}
+// ── НАСТРОЙКИ ─────────────────────────────────────────────────────────────
+// Вставь сюда свои данные из JSONBin один раз:
+const HARDCODED_BIN_ID  = "69bf9eeab7ec241ddc8f455e";
+const HARDCODED_API_KEY = "$2a$10$Y7srX2ZExEZK0kzTvqtC8em/HWRwE2nOiMIR95k/w/nwAcM4Ptlt6";
+// ──────────────────────────────────────────────────────────────────────────
+
+function getCfg(){
+  // Сначала проверяем вшитые значения, потом localStorage
+  if(HARDCODED_BIN_ID) return {binId:HARDCODED_BIN_ID, apiKey:HARDCODED_API_KEY};
+  try{return JSON.parse(localStorage.getItem("DV_SCHEDULE_CFG")||"{}")}catch(e){return{}}
+}
 function saveCfg(){
   const b=document.getElementById("b-inp").value.trim();
   const k=document.getElementById("k-inp").value.trim();
@@ -264,10 +284,11 @@ function renderDay(data,date){
   // Schedule
   const list=document.getElementById("sched");
   list.innerHTML="";
-  if(!bks.length){
+  if(!bks.length && !orgs.length){
     list.innerHTML='<div class="empty">🏖️<br><br>На этот день броней нет</div>';
     return;
   }
+  if(!bks.length){list.innerHTML="";}
   bks.forEach(b=>{
     const slots=slotsOn(b,date);
     const firstM=Math.min(...slots.map(s=>t2m(s.timeStart)));
@@ -302,6 +323,8 @@ function renderDay(data,date){
     const card=document.createElement("div");
     card.className=cls;
     const endH=Math.floor(lastM>=1440?0:lastM/60),endMi=lastM>=1440?0:lastM%60;
+    const bkIdVal = b.id;
+    const dateVal = date;
     card.innerHTML=`<div class="crow">
       <div class="cleft">
         <div class="ctime">${p(Math.floor(firstM/60))}:${p(firstM%60)}<span>– ${p(endH)}:${p(endMi)}</span></div>
@@ -309,9 +332,44 @@ function renderDay(data,date){
         <div class="csub">${courtsStr} · ${durStr}</div>
       </div>
       <div class="cright">${badge}${orgB}</div>
+    </div>
+    <div class="card-actions">
+      <button class="act-btn act-present" onclick="handleSess('${bkIdVal}','${dateVal}','present')">✅ Был</button>
+      <button class="act-btn act-absent" onclick="handleSess('${bkIdVal}','${dateVal}','absent')">❌ Не был</button>
+      <button class="act-btn act-cancel" onclick="handleSess('${bkIdVal}','${dateVal}','cancel_client')">🔄 Отмена</button>
+      ${st ? `<button class="act-btn act-clear" onclick="handleSess('${bkIdVal}','${dateVal}',null)">✕ Сброс</button>` : ''}
     </div>`;
     list.appendChild(card);
   });
+}
+
+function handleSess(bkId, date, status) {
+  saveSessStatus(bkId, date, status);
+}
+
+async function saveSessStatus(bkId, date, status) {
+  const cfg = getCfg();
+  if (!cfg.binId || !cfg.apiKey) return;
+  try {
+    // Load latest data
+    const r1 = await fetch("https://api.jsonbin.io/v3/b/" + cfg.binId + "/latest",
+      {headers:{"X-Master-Key":cfg.apiKey}});
+    const d1 = await r1.json();
+    const data = d1.record || d1;
+    // Find booking and update session
+    const bks = (data.bookings||[]).map(b => {
+      if (b.id !== bkId) return b;
+      const sessions = (b.sessions||[]).filter(s => !(s.date===date));
+      if (status) sessions.push({date, slotId: (b.slots&&b.slots[0]&&b.slots[0].id)||"", status});
+      return {...b, sessions};
+    });
+    // Save back
+    await fetch("https://api.jsonbin.io/v3/b/" + cfg.binId,
+      {method:"PUT", headers:{"Content-Type":"application/json","X-Master-Key":cfg.apiKey},
+       body: JSON.stringify({...data, bookings:bks})});
+    // Refresh
+    await fetchData();
+  } catch(e) { console.error(e); }
 }
 
 async function fetchData(){
@@ -321,6 +379,8 @@ async function fetchData(){
     document.getElementById("setup-block").style.display="block";
     return;
   }
+  // Hide setup block if we have config
+  document.getElementById("setup-block").style.display="none";
   try{
     const h={"Content-Type":"application/json"};
     if(cfg.apiKey)h["X-Master-Key"]=cfg.apiKey;
